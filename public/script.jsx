@@ -62,30 +62,50 @@ var Game = React.createClass({
     var startingQs= ["When someone texts back 'k'", "When Netflix asks if you're still there", "When you're about to leave but your song comes on"];
 
     return {
+      currentPlayer: Math.random(),
       myCards: [],
       qCards: ["When someone texts back 'k'", "When Netflix asks if you're still there", "When you're about to leave but your song comes on"],
-      testQ: startingQs[Math.floor(Math.random()*(3 -0))]
+      currentQ: startingQs[Math.floor(Math.random()*(3 -0))]
     }
+  },
+  componentDidMount: function(){
+    var that = this;
+    this.socket = io();
+    this.socket.on('setQ', function(testQ){
+      console.log("setting Q")
+      that.setState({currentQ: testQ })
+    })
+    this.socket.on('addGif', function(gif){
+       console.log("adding gif on client")
+        that.setState({myCards: that.state.myCards.concat( gif)})
+
+    })
+
   },
   pickQ: function(){
   return this.state.qCards[Math.floor(Math.random()*(this.state.qCards.length -0))];
   },
   addCard: function(testText) {
     console.log("testText", testText)
-    if ( testText.includes(".gif") || testText.includes(".jpg") ) {this.setState({myCards: this.state.myCards.concat( testText) }); }
+    if ( testText.includes(".gif") || testText.includes(".jpg") ) {
+      // this.setState({myCards: this.state.myCards.concat( testText)
+        this.socket.emit('newGif', testText)
+    }
     else { alert("PLEASE ENTER A GIF");
     }
   },
-
+  newQCard: function(){
+    this.socket.emit('newQCard')
+  },
   render: function() {
     var cards = this.state.myCards;
-    var pickQ = this.state.testQ;
+    var currentQ = this.state.currentQ;
 
     return (
       <div>
-        <button onClick={this.addCard}>Test Button</button>
+        <button onClick={this.newQCard}>Pick New Question</button>
         <hr />
-      <QuestionFrame qCard = {pickQ} />
+      <QuestionFrame qCard = {currentQ} />
       <GifsFrame cards = {cards}/>
       <Form addCard={this.addCard}/>
       </div>
