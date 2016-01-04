@@ -2,6 +2,9 @@ var https = require('https')
 var server = require('http').createServer();
 var express = require('express');
 var socketio = require('socket.io');
+var models = require('./models.js');
+var Question = models.Question;
+var Gif = models.Gif;
 
 var app = express();
 var router = express.Router();
@@ -18,15 +21,40 @@ io.on('connection', function (socket) {
     socket.on('newQCard', function(){
       console.log("made it here")
    //   that.setState({currentQ: this.pickQ() })
-      var startingQs= ["When someone texts back 'k'", "When Netflix asks if you're still there", "When you're about to leave but your song comes on"];
-      var currentQ=  startingQs[Math.floor(Math.random()*(3 -0))]
 
-      io.emit('setQ', currentQ )
+     Question.find({"used": false})
+        .then(function(all){
+            console.log("all", all)
+           if (all.length===0){
+            console.log("no more")
+            io.emit('setQ', "NO MORE QUESTIONS IN QUEUE" )
+        } else {
+             var currentQ=  all[Math.floor(Math.random()*(all.length -0))]
+             console.log("startingQ", currentQ)
+             Question.findOne(currentQ)
+                .then(function(q){
+                  console.log("found q", q)
+                  q.used = true;
+                  console.log("saved q", q)
+
+                  q.save();
+                  io.emit('setQ', currentQ.title )
+
+                })
+          }
+        });
+
     })
 
-    socket.on('newGif', function(gif){
+    socket.on('newGif', function(gif, userName){
       console.log("adding gif")
-      io.emit('addGif', gif )
+      io.emit('addGif', gif, userName )
+    })
+
+
+    socket.on('newGif', function(gif, userName){
+      console.log("adding gif")
+      io.emit('addGif', gif, userName )
     })
 
 
@@ -46,6 +74,16 @@ app.use(express.static(__dirname + '/node_modules'));
 
 app.get('/', function (req, res) {
     res.sendFile('index.html' , { root : __dirname});
+});
+
+app.get('/test', function (req, res) {
+    console.log("hello")
+
+});
+
+app.post('/users', function (req, res) {
+    console.log("hit route", req)
+
 });
 
 // var server = app.listen(3000, function () {
